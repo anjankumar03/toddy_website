@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toddy Milk - Fresh & Natural</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Leaflet CSS for free maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+    <header>
+        <h1 data-en="Toddy Milk" data-te="తాటి రసం">Toddy Milk</h1>
+        <div class="lang-toggle">
+            <button onclick="setLang('en')">English</button>
+            <button onclick="setLang('te')">తెలుగు</button>
+        </div>
+    </header>
+
+    <main>
+        <section class="order-form">
+            <h2 data-en="Place Your Order" data-te="మీ ఆర్డర్ చేయండి">Place Your Order</h2>
+            
+            <!-- Customer Details Section -->
+            <div class="customer-details">
+                <h3 data-en="Customer Details" data-te="కస్టమర్ వివరాలు">Customer Details</h3>
+                
+                <div class="form-group">
+                    <label data-en="Customer Name:" data-te="కస్టమర్ పేరు:">Customer Name:</label>
+                    <input type="text" id="customerName" placeholder="Enter your full name" required>
+                    <span class="error" id="nameError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label data-en="Mobile Number:" data-te="మొబైల్ నంబర్:">Mobile Number:</label>
+                    <input type="tel" id="mobileNumber" placeholder="Enter 10-digit mobile number" maxlength="10" required>
+                    <span class="error" id="mobileError"></span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label data-en="Select Type:" data-te="రకం ఎంచుకోండి:">Select Type:</label>
+                <select id="toddyType" onchange="calculateTotal()">
+                    <option value="eetha" data-en="Eetha (₹60/L)" data-te="ఈత (₹60/L)">Eetha (₹60/L)</option>
+                    <option value="thati" data-en="Thati (₹75/L)" data-te="తాటి (₹75/L)">Thati (₹75/L)</option>
+                    <option value="neera" data-en="Neera (₹90/L)" data-te="నీరా (₹90/L)">Neera (₹90/L)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label data-en="Quantity (Litres):" data-te="పరిమాణం (లీటర్లు):">Quantity (Litres):</label>
+                <input type="number" id="litres" min="5" value="5" onchange="calculateTotal()">
+                <small data-en="Minimum 5 litres" data-te="కనీసం 5 లీటర్లు">Minimum 5 litres</small>
+            </div>
+
+            <div class="form-group">
+                <label data-en="Delivery Option:" data-te="డెలివరీ ఎంపిక:">Delivery Option:</label>
+                <select id="deliveryOption" onchange="toggleDelivery()">
+                    <option value="pickup" data-en="Self Pickup" data-te="స్వయంగా తీసుకోవడం">Self Pickup</option>
+                    <option value="delivery" data-en="Home Delivery" data-te="ఇంటికి డెలివరీ">Home Delivery</option>
+                </select>
+            </div>
+
+            <div id="deliverySection" class="hidden">
+                <div class="location-section">
+                    <h3 data-en="Delivery Location" data-te="డెలివరీ లొకేషన్">Delivery Location</h3>
+                    
+                    <div class="form-group">
+                        <label data-en="Enter Your Address:" data-te="మీ చిరునామా రాయండి:">Enter Your Address:</label>
+                        <textarea id="address" placeholder="Type your full delivery address (area, landmark, city)"></textarea>
+                        <span class="error" id="locationError"></span>
+                    </div>
+                    
+                    <div class="location-buttons">
+                        <button type="button" onclick="searchAddress()" data-en="🔍 Search Address" data-te="🔍 చిరునామా వెతకండి">🔍 Search Address</button>
+                        <button type="button" id="useLocationBtn" onclick="getCurrentLocation()" data-en="📍 Use Current Location" data-te="📍 ప్రస్తుత లొకేషన్ వాడండి">📍 Use Current Location</button>
+                    </div>
+                    
+                    <div id="mapContainer" class="hidden">
+                        <div id="map"></div>
+                        <p class="map-instruction" data-en="✅ Location found! Red marker = Shop, Blue marker = Your location (drag to fine-tune if needed)" data-te="✅ లొకేషన్ కనుగొనబడింది! ఎర్ర మార్కర్ = దుకానం, నీల మార్కర్ = మీ లొకేషన్">✅ Location found! Red marker = Shop, Blue marker = Your location (drag to fine-tune if needed)</p>
+                    </div>
+                    
+                    <div class="delivery-info">
+                        <div id="distanceInfo"></div>
+                        <div id="deliveryChargeInfo"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="price-section">
+                <div id="priceDetails">Total: ₹300</div>
+            </div>
+
+            <div class="payment-section">
+                <h3 data-en="Payment" data-te="చెల్లింపు">Payment</h3>
+                
+                <div class="payment-summary">
+                    <div id="priceDetails">Total: ₹300</div>
+                    <p class="payment-note" data-en="Pay securely via UPI" data-te="UPI ద్వారా సురక్షితంగా చెల్లించండి">Pay securely via UPI</p>
+                </div>
+
+                <button id="payBtn" onclick="payNow()" class="pay-btn" disabled data-en="Pay Now" data-te="ఇప్పుడే చెల్లించండి">Pay Now</button>
+                
+                <div class="payment-info">
+                    <p class="upi-info" data-en="• You will be redirected to your UPI app" data-te="• మీరు UPI ఆప్ కి రీడైరెక్ట్ అవుతారు">• You will be redirected to your UPI app</p>
+                    <p class="upi-info" data-en="• Complete payment and return to confirm order" data-te="• చెల్లింపు పూర్తి చేసి ఆర్డర్ కన్ఫర్మ్ చేయండి">• Complete payment and return to confirm order</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Global variables for the script
+        const toddyType = document.getElementById('toddyType');
+        const deliveryOption = document.getElementById('deliveryOption');
+        const paidCheck = document.getElementById('paidCheck');
+    </script>
+    
+    <!-- Load Leaflet JS for free maps -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script src="js/script.js"></script>
+</body>
+</html>

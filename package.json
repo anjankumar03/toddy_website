@@ -1,0 +1,13 @@
+{
+  "name": "toddy-website",
+  "version": "1.0.0",
+  "description": "Toddy Milk Delivery Website",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server . -p 3000 -o",
+    "dev": "npx live-server --port=3000 --open=/index.html"
+  },
+  "keywords": ["toddy", "delivery", "website"],
+  "author": "Nagula Shiva Sai",
+  "license": "MIT"
+}
