@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Dashboard - Toddy Orders</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .owner-header {
+            background: #1b5e20;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin: -10px -10px 20px -10px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: #e8f5e9;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #2e7d32;
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+        .orders-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .order-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .order-time {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .order-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .status-new {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-delivered {
+            background: #d4edda;
+            color: #155724;
+        }
+        .customer-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .order-details {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+        .no-orders {
+            text-align: center;
+            padding: 50px;
+            color: #6c757d;
+        }
+        .filter-section {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-section select, .filter-section button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        @media (max-width: 768px) {
+            .customer-info {
+                grid-template-columns: 1fr;
+            }
+            .action-buttons {
+                flex-direction: column;
+            }
+            .filter-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="owner-header">
+        <h1>🏪 Owner Dashboard</h1>
+        <p>Manage Toddy Orders & Deliveries</p>
+    </div>
+
+    <main>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalOrders">0</div>
+                <div>Total Orders</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="todayOrders">0</div>
+                <div>Today's Orders</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="pendingDeliveries">0</div>
+                <div>Pending Deliveries</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalRevenue">₹0</div>
+                <div>Total Revenue</div>
+            </div>
+        </div>
+
+        <div class="orders-container">
+            <div class="filter-section">
+                <select id="statusFilter">
+                    <option value="all">All Orders</option>
+                    <option value="new">New Orders</option>
+                    <option value="delivered">Delivered</option>
+                </select>
+                <select id="typeFilter">
+                    <option value="all">All Types</option>
+                    <option value="delivery">Delivery Only</option>
+                    <option value="pickup">Pickup Only</option>
+                </select>
+                <button onclick="refreshOrders()" class="btn btn-primary">🔄 Refresh</button>
+                <button onclick="clearAllOrders()" class="btn btn-danger">🗑️ Clear All</button>
+                <a href="orders-table.html" class="btn btn-warning">📊 Table View</a>
+                <button onclick="showInventoryManager()" class="btn" style="background:#17a2b8;">📦 Manage Stock</button>
+                <button onclick="logout()" class="btn" style="background:#dc3545;">🚪 Logout</button>
+            </div>
+
+            <!-- Inventory Manager Modal -->
+            <div id="inventoryModal" class="hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;">
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:30px;border-radius:8px;width:90%;max-width:500px;">
+                    <h3>📦 Manage Inventory</h3>
+                    <div style="margin:20px 0;">
+                        <label>Eetha Stock (Litres):</label>
+                        <input type="number" id="eethaStock" min="0" style="width:100%;padding:8px;margin:5px 0;">
+                    </div>
+                    <div style="margin:20px 0;">
+                        <label>Thati Stock (Litres):</label>
+                        <input type="number" id="thatiStock" min="0" style="width:100%;padding:8px;margin:5px 0;">
+                    </div>
+                    <div style="margin:20px 0;">
+                        <label>Neera Stock (Litres):</label>
+                        <input type="number" id="neeraStock" min="0" style="width:100%;padding:8px;margin:5px 0;">
+                    </div>
+                    <div style="text-align:center;margin-top:20px;">
+                        <button onclick="updateInventoryLevels()" class="btn btn-success">✓ Update Stock</button>
+                        <button onclick="hideInventoryManager()" class="btn" style="background:#6c757d;margin-left:10px;">✕ Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <h2>📋 Customer Orders</h2>
+            <div id="ordersContainer">
+                <div class="no-orders">
+                    <h3>No orders yet</h3>
+                    <p>Orders will appear here when customers place them</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Authentication check
+        function checkOwnerAuth() {
+            const isAuthenticated = localStorage.getItem('ownerAuth') === 'authenticated';
+            const loginTime = parseInt(localStorage.getItem('ownerLoginTime') || '0');
+            const currentTime = Date.now();
+            const sessionDuration = 24 * 60 * 60 * 1000; // 24 hours
+            
+            if (!isAuthenticated || (currentTime - loginTime > sessionDuration)) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('ownerAuth');
+            localStorage.removeItem('ownerLoginTime');
+            window.location.href = 'login.html';
+        }
+
+        // Check authentication on page load
+        if (!checkOwnerAuth()) {
+            // Will redirect to login if not authenticated
+        }
+
+        // Load and display orders
+        function loadOrders() {
+            const orders = JSON.parse(localStorage.getItem('toddyOrders') || '[]');
+            const statusFilter = document.getElementById('statusFilter').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+            
+            // Filter orders
+            let filteredOrders = orders;
+            if (statusFilter !== 'all') {
+                filteredOrders = filteredOrders.filter(order => order.status === statusFilter);
+            }
+            if (typeFilter !== 'all') {
+                filteredOrders = filteredOrders.filter(order => order.deliveryType === typeFilter);
+            }
+            
+            displayOrders(filteredOrders);
+            updateStats(orders);
+        }
+
+        function displayOrders(orders) {
+            const container = document.getElementById('ordersContainer');
+            
+            if (orders.length === 0) {
+                container.innerHTML = `
+                    <div class="no-orders">
+                        <h3>No orders found</h3>
+                        <p>No orders match the current filter criteria</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = orders.map(order => `
+                <div class="order-card">
+                    <div class="order-header">
+                        <div class="order-time">${order.timestamp}</div>
+                        <div class="order-status status-${order.status || 'new'}">${(order.status || 'new').toUpperCase()}</div>
+                    </div>
+                    
+                    <div class="customer-info">
+                        <div><strong>👤 Customer:</strong> ${order.customer}</div>
+                        <div><strong>📱 Mobile:</strong> <a href="tel:${order.mobile}">${order.mobile}</a></div>
+                    </div>
+                    
+                    <div class="order-details">
+                        <div><strong>🥥 Product:</strong> ${order.type.toUpperCase()} - ${order.litres}L</div>
+                        <div><strong>💰 ${order.total}</strong></div>
+                        <div><strong>📦 Type:</strong> ${order.deliveryType === 'delivery' ? '🚚 Home Delivery' : '🏪 Self Pickup'}</div>
+                        ${order.deliveryType === 'delivery' ? `
+                            <div><strong>📍 Address:</strong> ${order.address}</div>
+                            ${order.coordinates ? `<div><strong>📏 Distance:</strong> ${calculateDistanceFromCoords(order.coordinates)} km</div>` : ''}
+                        ` : ''}
+                    </div>
+                    
+                    <div class="action-buttons">
+                        ${order.deliveryType === 'delivery' && order.coordinates ? `
+                            <a href="${order.mapsLink}" target="_blank" class="btn btn-primary">🗺️ Get Directions</a>
+                        ` : ''}
+                        <a href="tel:${order.mobile}" class="btn btn-success">📞 Call Customer</a>
+                        <a href="${generateWhatsAppLink(order)}" target="_blank" class="btn btn-warning">💬 WhatsApp</a>
+                        <button onclick="markAsDelivered('${order.timestamp}')" class="btn btn-success">✅ Mark Delivered</button>
+                        <button onclick="deleteOrder('${order.timestamp}')" class="btn btn-danger">🗑️ Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats(orders) {
+            const today = new Date().toDateString();
+            const todayOrders = orders.filter(order => new Date(order.timestamp).toDateString() === today);
+            const pendingDeliveries = orders.filter(order => order.deliveryType === 'delivery' && order.status !== 'delivered');
+            const totalRevenue = orders.reduce((sum, order) => {
+                const amount = parseInt(order.total.replace(/\D/g, ''));
+                return sum + amount;
+            }, 0);
+
+            document.getElementById('totalOrders').textContent = orders.length;
+            document.getElementById('todayOrders').textContent = todayOrders.length;
+            document.getElementById('pendingDeliveries').textContent = pendingDeliveries.length;
+            document.getElementById('totalRevenue').textContent = `₹${totalRevenue}`;
+        }
+
+        // ===== INVENTORY MANAGEMENT =====
+        function getInventory() {
+            const defaultInventory = {eetha: 50, thati: 50, neera: 50};
+            return JSON.parse(localStorage.getItem('toddyInventory') || JSON.stringify(defaultInventory));
+        }
+
+        function showInventoryManager() {
+            const inventory = getInventory();
+            document.getElementById('eethaStock').value = inventory.eetha;
+            document.getElementById('thatiStock').value = inventory.thati;
+            document.getElementById('neeraStock').value = inventory.neera;
+            document.getElementById('inventoryModal').classList.remove('hidden');
+        }
+
+        function hideInventoryManager() {
+            document.getElementById('inventoryModal').classList.add('hidden');
+        }
+
+        function updateInventoryLevels() {
+            const newInventory = {
+                eetha: parseInt(document.getElementById('eethaStock').value) || 0,
+                thati: parseInt(document.getElementById('thatiStock').value) || 0,
+                neera: parseInt(document.getElementById('neeraStock').value) || 0
+            };
+            
+            localStorage.setItem('toddyInventory', JSON.stringify(newInventory));
+            hideInventoryManager();
+            alert('Inventory updated successfully! 📦');
+        }
+
+        function calculateDistanceFromCoords(coordinates) {
+            const [lat, lng] = coordinates.split(',').map(parseFloat);
+            const shopLat = 18.432;
+            const shopLng = 78.474;
+            
+            const R = 6371;
+            const dLat = (lat - shopLat) * Math.PI / 180;
+            const dLng = (lng - shopLng) * Math.PI / 180;
+            
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(shopLat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
+                      Math.sin(dLng/2) * Math.sin(dLng/2);
+            
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c;
+            
+            return distance.toFixed(1);
+        }
+
+        function generateWhatsAppLink(order) {
+            let message = `Hello ${order.customer}! 🥥\n\n`;
+            message += `Your Toddy order details:\n`;
+            message += `• Product: ${order.type.toUpperCase()} - ${order.litres}L\n`;
+            message += `• ${order.total}\n`;
+            message += `• Type: ${order.deliveryType === 'delivery' ? 'Home Delivery' : 'Self Pickup'}\n\n`;
+            
+            if (order.deliveryType === 'delivery') {
+                message += `We will deliver to: ${order.address}\n\n`;
+            } else {
+                message += `Please collect from our shop.\n\n`;
+            }
+            
+            message += `Thank you for your order! 🙏`;
+            
+            return `https://wa.me/${order.mobile}?text=${encodeURIComponent(message)}`;
+        }
+
+        function markAsDelivered(timestamp) {
+            const orders = JSON.parse(localStorage.getItem('toddyOrders') || '[]');
+            const orderIndex = orders.findIndex(order => order.timestamp === timestamp);
+            
+            if (orderIndex !== -1) {
+                orders[orderIndex].status = 'delivered';
+                orders[orderIndex].deliveredAt = new Date().toLocaleString();
+                localStorage.setItem('toddyOrders', JSON.stringify(orders));
+                loadOrders();
+                alert('Order marked as delivered! ✅');
+            }
+        }
+
+        function deleteOrder(timestamp) {
+            if (confirm('Are you sure you want to delete this order?')) {
+                const orders = JSON.parse(localStorage.getItem('toddyOrders') || '[]');
+                const filteredOrders = orders.filter(order => order.timestamp !== timestamp);
+                localStorage.setItem('toddyOrders', JSON.stringify(filteredOrders));
+                loadOrders();
+                alert('Order deleted successfully! 🗑️');
+            }
+        }
+
+        function refreshOrders() {
+            loadOrders();
+            alert('Orders refreshed! 🔄');
+        }
+
+        function clearAllOrders() {
+            if (confirm('Are you sure you want to delete ALL orders? This cannot be undone!')) {
+                localStorage.removeItem('toddyOrders');
+                loadOrders();
+                alert('All orders cleared! 🗑️');
+            }
+        }
+
+        // Event listeners
+        document.getElementById('statusFilter').addEventListener('change', loadOrders);
+        document.getElementById('typeFilter').addEventListener('change', loadOrders);
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadOrders, 30000);
+
+        // Load orders on page load
+        document.addEventListener('DOMContentLoaded', loadOrders);
+    </script>
+</body>
+</html>

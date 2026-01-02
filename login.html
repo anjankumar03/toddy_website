@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Login - Toddy Management</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2e7d32;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: #2e7d32;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .login-btn:hover {
+            background: #1b5e20;
+        }
+        .error-msg {
+            color: #dc3545;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .back-link a {
+            color: #2e7d32;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h2>🔐 Owner Login</h2>
+            <p>Access Owner Dashboard</p>
+        </div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" required>
+            </div>
+            
+            <button type="submit" class="login-btn">Login</button>
+            <div id="errorMsg" class="error-msg"></div>
+        </form>
+        
+        <div class="back-link">
+            <a href="index.html">← Back to Customer Page</a>
+        </div>
+    </div>
+
+    <script>
+        // Simple authentication credentials
+        const OWNER_CREDENTIALS = {
+            username: 'owner',
+            password: 'toddy123'
+        };
+
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+            
+            if (username === OWNER_CREDENTIALS.username && password === OWNER_CREDENTIALS.password) {
+                // Set authentication token
+                localStorage.setItem('ownerAuth', 'authenticated');
+                localStorage.setItem('ownerLoginTime', Date.now().toString());
+                
+                // Redirect to owner dashboard
+                window.location.href = 'owner.html';
+            } else {
+                errorMsg.textContent = 'Invalid username or password';
+                document.getElementById('password').value = '';
+            }
+        });
+
+        // Check if already logged in
+        if (localStorage.getItem('ownerAuth') === 'authenticated') {
+            const loginTime = parseInt(localStorage.getItem('ownerLoginTime') || '0');
+            const currentTime = Date.now();
+            const sessionDuration = 24 * 60 * 60 * 1000; // 24 hours
+            
+            if (currentTime - loginTime < sessionDuration) {
+                window.location.href = 'owner.html';
+            }
+        }
+    </script>
+</body>
+</html>

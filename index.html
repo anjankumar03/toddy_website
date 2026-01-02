@@ -14,6 +14,7 @@
         <div class="lang-toggle">
             <button onclick="setLang('en')">English</button>
             <button onclick="setLang('te')">తెలుగు</button>
+            <a href="login.html" style="background:#1b5e20; color:white; padding:8px 12px; text-decoration:none; border-radius:4px; margin-left:10px;">👤 Owner Login</a>
         </div>
     </header>
 
@@ -40,17 +41,19 @@
             
             <div class="form-group">
                 <label data-en="Select Type:" data-te="రకం ఎంచుకోండి:">Select Type:</label>
-                <select id="toddyType" onchange="calculateTotal()">
+                <select id="toddyType" onchange="updateAvailabilityAndCalculate()">
                     <option value="eetha" data-en="Eetha (₹60/L)" data-te="ఈత (₹60/L)">Eetha (₹60/L)</option>
                     <option value="thati" data-en="Thati (₹75/L)" data-te="తాటి (₹75/L)">Thati (₹75/L)</option>
                     <option value="neera" data-en="Neera (₹90/L)" data-te="నీరా (₹90/L)">Neera (₹90/L)</option>
                 </select>
+                <div id="availabilityInfo" style="margin-top:5px;font-size:14px;color:#2e7d32;"></div>
             </div>
 
             <div class="form-group">
                 <label data-en="Quantity (Litres):" data-te="పరిమాణం (లీటర్లు):">Quantity (Litres):</label>
-                <input type="number" id="litres" min="5" value="5" onchange="calculateTotal()">
-                <small data-en="Minimum 5 litres" data-te="కనీసం 5 లీటర్లు">Minimum 5 litres</small>
+                <input type="number" id="litres" min="1" value="2" onchange="validateQuantityAndCalculate()">
+                <small data-en="Minimum 1 litre" data-te="కనీసం 1 లీటర్">Minimum 1 litre</small>
+                <div id="quantityError" class="error"></div>
             </div>
 
             <div class="form-group">
@@ -89,14 +92,14 @@
             </div>
 
             <div class="price-section">
-                <div id="priceDetails">Total: ₹300</div>
+                <div id="priceDetails">Total: ₹0</div>
             </div>
 
             <div class="payment-section">
                 <h3 data-en="Payment" data-te="చెల్లింపు">Payment</h3>
                 
                 <div class="payment-summary">
-                    <div id="priceDetails">Total: ₹300</div>
+                    <div id="paymentTotal">Total: ₹0</div>
                     <p class="payment-note" data-en="Pay securely via UPI" data-te="UPI ద్వారా సురక్షితంగా చెల్లించండి">Pay securely via UPI</p>
                 </div>
 

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orders Table - Toddy Management</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .orders-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .orders-table th, .orders-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .orders-table th {
+            background: #2e7d32;
+            color: white;
+        }
+        .orders-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        .status-new { color: #856404; font-weight: bold; }
+        .status-delivered { color: #155724; font-weight: bold; }
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 0.8em;
+            margin: 2px;
+        }
+        @media (max-width: 768px) {
+            .orders-table {
+                font-size: 0.8em;
+            }
+            .orders-table th, .orders-table td {
+                padding: 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>📋 Orders Management</h1>
+        <div style="text-align: center; margin-top: 10px;">
+            <a href="index.html" style="color: white; text-decoration: none; margin: 0 10px;">🏠 Home</a>
+            <a href="owner.html" style="color: white; text-decoration: none; margin: 0 10px;">👤 Owner Dashboard</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div>
+                    <a href="owner.html" class="btn" style="background:#6c757d;margin-right:10px;">← Back to Dashboard</a>
+                    <h2 style="display:inline;">All Orders</h2>
+                </div>
+                <div>
+                    <button onclick="exportOrders()" class="btn btn-primary">📊 Export CSV</button>
+                    <button onclick="logout()" class="btn" style="background:#dc3545;margin-left:10px;">🚪 Logout</button>
+                </div>
+            </div>
+            
+            <div id="ordersTableContainer">
+                <p>Loading orders...</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Authentication check
+        function checkOwnerAuth() {
+            const isAuthenticated = localStorage.getItem('ownerAuth') === 'authenticated';
+            const loginTime = parseInt(localStorage.getItem('ownerLoginTime') || '0');
+            const currentTime = Date.now();
+            const sessionDuration = 24 * 60 * 60 * 1000; // 24 hours
+            
+            if (!isAuthenticated || (currentTime - loginTime > sessionDuration)) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        // Check authentication on page load
+        if (!checkOwnerAuth()) {
+            // Will redirect to login if not authenticated
+        }
+
+        function loadOrdersTable() {
+            const orders = JSON.parse(localStorage.getItem('toddyOrders') || '[]');
+            const container = document.getElementById('ordersTableContainer');
+            
+            if (orders.length === 0) {
+                container.innerHTML = '<p>No orders found.</p>';
+                return;
+            }
+
+            let tableHTML = `
+                <table class="orders-table">
+                    <thead>
+                        <tr>
+                            <th>Date/Time</th>
+                            <th>Customer</th>
+                            <th>Mobile</th>
+                            <th>Product</th>
+                            <th>Type</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            orders.forEach(order => {
+                tableHTML += `
+                    <tr>
+                        <td>${order.timestamp}</td>
+                        <td>${order.customer}</td>
+                        <td><a href="tel:${order.mobile}">${order.mobile}</a></td>
+                        <td>${order.type.toUpperCase()} - ${order.litres}L</td>
+                        <td>${order.deliveryType === 'delivery' ? '🚚 Delivery' : '🏪 Pickup'}</td>
+                        <td>${order.total}</td>
+                        <td class="status-${order.status || 'new'}">${(order.status || 'new').toUpperCase()}</td>
+                        <td>
+                            ${order.mapsLink ? `<a href="${order.mapsLink}" target="_blank" class="btn btn-primary btn-small">📍</a>` : ''}
+                            <a href="tel:${order.mobile}" class="btn btn-success btn-small">📞</a>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tableHTML += '</tbody></table>';
+            container.innerHTML = tableHTML;
+        }
+
+        function exportOrders() {
+            const orders = JSON.parse(localStorage.getItem('toddyOrders') || '[]');
+            
+            if (orders.length === 0) {
+                alert('No orders to export');
+                return;
+            }
+
+            let csv = 'Date,Customer,Mobile,Product,Quantity,Type,Address,Total,Status\n';
+            
+            orders.forEach(order => {
+                csv += `"${order.timestamp}","${order.customer}","${order.mobile}","${order.type}","${order.litres}L","${order.deliveryType}","${order.address || 'N/A'}","${order.total}","${order.status || 'new'}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `toddy-orders-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function logout() {
+            localStorage.removeItem('ownerAuth');
+            localStorage.removeItem('ownerLoginTime');
+            window.location.href = 'login.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', loadOrdersTable);
+    </script>
+</body>
+</html>

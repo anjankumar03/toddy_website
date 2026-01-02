@@ -2,6 +2,23 @@
 const prices = {eetha: 60, thati: 75, neera: 90};
 let deliveryCharge = 0;
 
+// ===== INVENTORY MANAGEMENT =====
+function getInventory() {
+    const defaultInventory = {eetha: 50, thati: 50, neera: 50};
+    return JSON.parse(localStorage.getItem('toddyInventory') || JSON.stringify(defaultInventory));
+}
+
+function updateInventory(type, quantity) {
+    const inventory = getInventory();
+    inventory[type] = Math.max(0, inventory[type] - quantity);
+    localStorage.setItem('toddyInventory', JSON.stringify(inventory));
+}
+
+function checkAvailability(type, quantity) {
+    const inventory = getInventory();
+    return inventory[type] >= quantity;
+}
+
 // ===== UPI PAYMENT CONFIGURATION =====
 const UPI_ID = "6302564464@pthdfc"; // CHANGE TO YOUR ACTUAL UPI ID
 const MERCHANT_NAME = "Nagula Shiva Sai"; // CHANGE TO YOUR SHOP NAME
@@ -406,12 +423,52 @@ function calculateDeliveryCharge() {
     console.log(`Distance: ${distance.toFixed(1)}km, Delivery: ₹${deliveryCharge}`);
 }
 
+// ===== INVENTORY DISPLAY AND VALIDATION =====
+function updateAvailabilityAndCalculate() {
+    const type = toddyType.value;
+    const inventory = getInventory();
+    const available = inventory[type];
+    
+    document.getElementById('availabilityInfo').textContent = `Available: ${available}L`;
+    
+    // Update max attribute for quantity input
+    const litresInput = document.getElementById('litres');
+    litresInput.max = available;
+    
+    // Validate current quantity
+    validateQuantityAndCalculate();
+}
+
+function validateQuantityAndCalculate() {
+    const type = toddyType.value;
+    const quantity = parseInt(document.getElementById('litres').value);
+    const inventory = getInventory();
+    const available = inventory[type];
+    const errorDiv = document.getElementById('quantityError');
+    
+    if (quantity > available) {
+        errorDiv.textContent = `Only ${available}L available for ${type.toUpperCase()}`;
+        document.getElementById('priceDetails').innerText = 'Total: ₹0';
+        document.getElementById('paymentTotal').innerText = 'Total: ₹0';
+        updatePayButtonState();
+        return false;
+    } else {
+        errorDiv.textContent = '';
+        calculateTotal();
+        return true;
+    }
+}
+
 // ===== PRICE CALCULATION =====
 function calculateTotal() {
     const type = toddyType.value;
     const litres = +document.getElementById('litres').value;
     
-    if (litres < 5) return;
+    if (litres < 1) {
+        document.getElementById('priceDetails').innerText = 'Total: ₹0';
+        document.getElementById('paymentTotal').innerText = 'Total: ₹0';
+        return;
+    }
     
     let total = prices[type] * litres;
     
@@ -421,6 +478,7 @@ function calculateTotal() {
     }
     
     document.getElementById('priceDetails').innerText = `Total: ₹${total}`;
+    document.getElementById('paymentTotal').innerText = `Total: ₹${total}`;
     
     // Update pay button state
     updatePayButtonState();
@@ -473,7 +531,21 @@ function payNow() {
     
     // Get order details
     const customerName = document.getElementById('customerName').value.trim();
-    const totalAmount = document.getElementById('priceDetails').innerText.replace(/\D/g, '');
+    const totalAmountText = document.getElementById('paymentTotal').innerText;
+    const totalAmount = totalAmountText.replace(/\D/g, '');
+    const selectedType = toddyType.value;
+    const selectedQuantity = parseInt(document.getElementById('litres').value);
+    
+    if (!totalAmount || totalAmount === '0') {
+        alert('Please select quantity (minimum 1 litre)');
+        return;
+    }
+    
+    // Check inventory availability before payment
+    if (!checkAvailability(selectedType, selectedQuantity)) {
+        alert(`Sorry, only ${getInventory()[selectedType]}L of ${selectedType.toUpperCase()} is available`);
+        return;
+    }
     
     // Prepare order details for owner (save before payment)
     const orderDetails = prepareOrderForOwner();
@@ -505,6 +577,34 @@ function prepareOrderForOwner() {
     const address = document.getElementById('address').value;
     const total = document.getElementById('priceDetails').innerText;
     
+    // Create comprehensive order data for owner dashboard
+    const orderData = {
+        id: Date.now().toString(), // Unique order ID
+        timestamp: new Date().toLocaleString(),
+        customer: customerName,
+        mobile: mobile,
+        type: toddyType,
+        litres: litres,
+        total: total,
+        deliveryType: deliveryType,
+        address: deliveryType === 'delivery' ? address : 'Self Pickup',
+        coordinates: (deliveryType === 'delivery' && customerLat && customerLng) ? `${customerLat},${customerLng}` : null,
+        mapsLink: (deliveryType === 'delivery' && customerLat && customerLng) ? `https://www.google.com/maps/dir/${shopLat},${shopLng}/${customerLat},${customerLng}` : null,
+        status: 'new', // new, delivered
+        orderDate: new Date().toISOString(),
+        deliveryCharge: deliveryCharge,
+        distance: (deliveryType === 'delivery' && customerLat && customerLng) ? calculateDistance(shopLat, shopLng, customerLat, customerLng).toFixed(1) : null
+    };
+    
+    // Save to localStorage for owner access
+    let orders = JSON.parse(localStorage.getItem('toddyOrders') || '[]');
+    orders.unshift(orderData); // Add to beginning for latest first
+    localStorage.setItem('toddyOrders', JSON.stringify(orders));
+    
+    // Update inventory after successful order
+    updateInventory(toddyType, litres);
+    
+    // Create text summary for notifications
     let orderText = `NEW TODDY ORDER\n\n`;
     orderText += `Customer: ${customerName}\n`;
     orderText += `Mobile: ${mobile}\n`;
@@ -516,50 +616,33 @@ function prepareOrderForOwner() {
         orderText += `Address: ${address}\n`;
         
         if (customerLat && customerLng) {
-            orderText += `Distance: ${document.getElementById('distanceInfo').textContent}\n`;
-            orderText += `${document.getElementById('deliveryChargeInfo').textContent}\n\n`;
-            
-            // Create Google Maps link for owner
-            const mapsLink = `https://www.google.com/maps/dir/${shopLat},${shopLng}/${customerLat},${customerLng}`;
-            orderText += `Navigation Link: ${mapsLink}\n`;
-            
-            // Also create WhatsApp message for easy sharing
-            const whatsappMsg = encodeURIComponent(orderText);
-            const whatsappLink = `https://wa.me/?text=${whatsappMsg}`;
-            
-            // Store order details in localStorage for owner access
-            const orderData = {
-                timestamp: new Date().toLocaleString(),
-                customer: customerName,
-                mobile: mobile,
-                type: toddyType,
-                litres: litres,
-                total: total,
-                deliveryType: deliveryType,
-                address: address,
-                coordinates: customerLat && customerLng ? `${customerLat},${customerLng}` : null,
-                mapsLink: mapsLink,
-                whatsappLink: whatsappLink
-            };
-            
-            // Save to localStorage
-            let orders = JSON.parse(localStorage.getItem('toddyOrders') || '[]');
-            orders.push(orderData);
-            localStorage.setItem('toddyOrders', JSON.stringify(orders));
-            
-            // Show owner notification
-            setTimeout(() => {
-                if (confirm('Order placed! Would you like to open navigation to customer location?')) {
-                    window.open(mapsLink, '_blank');
-                }
-            }, 1000);
+            orderText += `Distance: ${orderData.distance} km from shop\n`;
+            orderText += `Delivery Charge: ₹${deliveryCharge}\n\n`;
+            orderText += `Navigation: ${orderData.mapsLink}\n`;
         }
     } else {
         orderText += `PICKUP ORDER\n`;
         orderText += `Customer will collect from shop\n`;
     }
     
-    console.log('Order Details for Owner:', orderText);
+    console.log('Order saved for owner dashboard:', orderData);
+    
+    // Show notification with option to view owner dashboard
+    setTimeout(() => {
+        if (deliveryType === 'delivery' && customerLat && customerLng) {
+            const action = confirm('Order placed successfully! 🎉\n\nWould you like to:\n• OK = Open Navigation\n• Cancel = View Owner Dashboard');
+            if (action) {
+                window.open(orderData.mapsLink, '_blank');
+            } else {
+                window.open('owner.html', '_blank');
+            }
+        } else {
+            if (confirm('Order placed successfully! 🎉\n\nWould you like to view the Owner Dashboard?')) {
+                window.open('owner.html', '_blank');
+            }
+        }
+    }, 1000);
+    
     return orderText;
 }
 
@@ -582,7 +665,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('address').addEventListener('input', updatePayButtonState);
     
     // Initial calculation and button state
-    calculateTotal();
+    updateAvailabilityAndCalculate();
     updatePayButtonState();
 });
 
